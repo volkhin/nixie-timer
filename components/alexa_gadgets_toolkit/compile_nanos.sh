@@ -1,41 +1,25 @@
 #!/bin/bash
 
-echo 'compiling proto files'
+PROTO_COMMAND="$HOME/Downloads/nanopb-0.3.9.2-macosx-x86/generator-bin/protoc"
 
-echo $(pwd)
-echo $USER
-PROTO_COMPILE_PATH='/Users/'$USER'/Downloads/nanopb-0.3.9.1-macosx-x86/generator-bin'
-PROTO_COMMAND_NAME='protoc'
-
-PROTO_COMMAND=$PROTO_COMPILE_PATH/$PROTO_COMMAND_NAME
-INPUT_COMMON='-I=../common/ '
-INPUT_TAG='-I='
-PROTO_EXT='*.proto'
-FORWARD_SLASH_PATH='/'
-SPACE=' '
-NANOPB_OUT='--nanopb_out=-I'
-COLON_SEP=':'
-CURRENT_FOLDER='.'
-
-all_proto_files=$(find ../. -name "*.proto")
+all_proto_files=$(find ./proto/ -name "*.proto")
 #echo $all_proto_files
 
 for file in $all_proto_files; do
-        file_path=${file%/*}
-        echo 'filepath:' $file_path
+  file_path=${file%/*}
+  echo "filepath: $file_path"
 
 	#Filter out the duplicate paths here TODO
-	input_path=$INPUT_TAG$file_path$FORWARD_SLASH_PATH$SPACE
+	input_path="-I=$file_path/ "
         #Use the below for output files in the same folders as input folders
-	#output_path=$NANOPB_OUT$file_path$FORWARD_SLASH_PATH$COLON_SEP$file_path$FORWARD_SLASH_PATH$SPACE
-	output_path=$NANOPB_OUT$file_path$FORWARD_SLASH_PATH$COLON_SEP$CURRENT_FOLDER
+	#output_path="--nanopb_out=-I$file_path/:$file_path/ "
+	output_path="--nanopb_out=-I$file_path/:./src/"
         #echo $output_path
-	proto_path=$file_path$FORWARD_SLASH_PATH$PROTO_EXT
+	proto_path="$file_path/*.proto"
 
 	#Run the proto compilation
-	$PROTO_COMMAND \
-	$INPUT_COMMON \
-	$input_path \
-	$output_path \
-	$proto_path
+  cmd="$PROTO_COMMAND -I=./proto/common/ $input_path $output_path $proto_path"
+  echo $cmd
+  $cmd
+  echo ""
 done
