@@ -21,5 +21,5 @@ typedef enum {
   ESCAPE = 0xf2
 } alexa_packet_component_t;
 
-// static const uint8_t PACKET_ID = 0x02;
-// static const uint8_t ERROR_ID = 0xf0;
+static const uint8_t PACKET_ID = 0x02;
+static const uint8_t ERROR_ID = 0x00;
