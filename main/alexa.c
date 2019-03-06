@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include "alertsDeleteAlertDirective.pb.h"
 #include "alertsSetAlertDirective.pb.h"
 #include "alexa.h"
 #include "alexaDiscoveryDiscoverDirective.pb.h"
@@ -31,6 +32,7 @@ static const char* TAG = "alexa.c";
 uint8_t out_buffer[1000];
 uint16_t out_buffer_len;
 static time_t timer;
+static char timer_token[100];
 
 // Define which spi bus to use TFT_VSPI_HOST or TFT_HSPI_HOST
 #define SPI_BUS TFT_HSPI_HOST
@@ -168,12 +170,20 @@ void handle_time_info(char* current_time) {
            tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, t);
 }
 
-void handle_set_timer(char* scheduled_time) {
+void set_timer(char* token, char* scheduled_time) {
   static struct tm tm;
   strptime(scheduled_time, "%Y-%m-%dT%H:%M:%S", &tm);
   timer = mktime(&tm);
-  ESP_LOGI(TAG, "timer: %d %d %d %d %d %d", tm.tm_year, tm.tm_mon, tm.tm_mday,
-           tm.tm_hour, tm.tm_min, tm.tm_sec);
+  memset(timer_token, 0, sizeof(timer_token));
+  strcpy(timer_token, token);
+  ESP_LOGI(TAG, "timer: %s %d %d %d %d %d %d", token, tm.tm_year, tm.tm_mon,
+           tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
+
+void cancel_timer() {
+  ESP_LOGI(TAG, "Cancelling timer");
+  memset(timer_token, 0, sizeof(timer_token));
+  timer = 0;
 }
 
 void handle_set_alert(pb_istream_t stream) {
@@ -186,7 +196,19 @@ void handle_set_alert(pb_istream_t stream) {
          envelope.directive.payload.scheduledTime);
 
   if (0 == strcmp(envelope.directive.payload.type, "TIMER")) {
-    handle_set_timer(envelope.directive.payload.scheduledTime);
+    set_timer(envelope.directive.payload.token,
+                     envelope.directive.payload.scheduledTime);
+  }
+}
+
+void handle_delete_alert(pb_istream_t stream) {
+  static alerts_DeleteAlertDirectiveProto envelope =
+      alerts_DeleteAlertDirectiveProto_init_default;
+  pb_decode(&stream, alerts_SetAlertDirectiveProto_fields, &envelope);
+  printf("alert token: %s\n", envelope.directive.payload.token);
+
+  if (0 == strcmp(timer_token, envelope.directive.payload.token)) {
+    cancel_timer();
   }
 }
 
@@ -223,6 +245,9 @@ void handle_alexa_payload(uint8_t* buffer, uint16_t len) {
   } else if (0 == strcmp(name, "SetAlert") &&
              0 == strcmp(namespace, "Alerts")) {
     handle_set_alert(stream);
+  } else if (0 == strcmp(name, "DeleteAlert") &&
+             0 == strcmp(namespace, "Alerts")) {
+    handle_delete_alert(stream);
   } else if (0 == strcmp(name, "StateUpdate") &&
              (0 == strcmp(namespace, "Alexa.Gadget.StateListener"))) {
     static alexaGadgetStateListener_StateUpdateDirectiveProto envelope =
@@ -354,9 +379,8 @@ void timer_task(void* pvParameter) {
       }
       sprintf(timer_output, "%02ld:%02ld", time_left / 60, time_left % 60);
     } else {
-      sprintf(timer_output, "<blank>");
+      sprintf(timer_output, "No timer");
     }
-    ESP_LOGI("TIMER", "%s", timer_output);
     TFT_fillScreen(TFT_BLACK);
     TFT_print(timer_output, CENTER, CENTER);
     vTaskDelay(100 / portTICK_PERIOD_MS);
