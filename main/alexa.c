@@ -38,47 +38,6 @@ static char timer_token[100];
 #define SPI_BUS TFT_HSPI_HOST
 
 void create_discovery_response() {
-  /*
-  {
-      "event": {
-          "header": {
-              "namespace": "Alexa.Discovery",
-              "name": "Discover.Response",
-              "messageId": ""
-          },
-          "payload": {
-              "endpoints": [{
-                  "endpointId": "test id",
-                  "friendlyName": "friendly name",
-                  "capabilities": [
-                  {
-                      "type": "test type 1",
-                      "interface": "Test interface 1",
-                      "version": "1.0"
-                  },
-                  {
-                      "type": "test type 2",
-                      "interface": "Test interface 2",
-                      "version": "1.0"
-                  },
-                  {
-                      "type": "test type 3",
-                      "interface": "Test interface 3",
-                      "version": "1.1"
-                  }],
-                  "additionalIdentification": {
-                      "firmwareVersion": "19",
-                      "deviceToken": "xxxxxxxxx",
-                      "deviceTokenEncryptionType": "yyy",
-                      "amazonDeviceType": "aabbccd",
-                      "modelName": "mock model name",
-                      "radioAddress": "1234567890"
-                  }
-              }]
-          }
-      }
-  }
-  */
   ESP_LOGI(TAG, "Creating discover response event");
   pb_ostream_t stream = pb_ostream_from_buffer(out_buffer, sizeof(out_buffer));
   static alexaDiscovery_DiscoverResponseEventProto env =
