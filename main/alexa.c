@@ -156,7 +156,7 @@ void handle_set_alert(pb_istream_t stream) {
 
   if (0 == strcmp(envelope.directive.payload.type, "TIMER")) {
     set_timer(envelope.directive.payload.token,
-                     envelope.directive.payload.scheduledTime);
+              envelope.directive.payload.scheduledTime);
   }
 }
 
@@ -252,8 +252,7 @@ void register_send_data_callback(send_data_callback_t callback) {
   send_data_callback = callback;
 }
 
-void timer_task(void* pvParameter) {
-  ESP_LOGI(TAG, "timer_task started");
+void init_display() {
   esp_err_t ret;
 
   tft_disp_type = DEFAULT_DISP_TYPE;
@@ -282,7 +281,7 @@ void timer_task(void* pvParameter) {
                                           // for display spi
   };
 
-  vTaskDelay(500 / portTICK_RATE_MS);
+  vTaskDelay(100 / portTICK_RATE_MS);
 
   ESP_LOGI("SPI", "Pins used: miso=%d, mosi=%d, sck=%d, cs=%d", PIN_NUM_MISO,
            PIN_NUM_MOSI, PIN_NUM_CLK, PIN_NUM_CS);
@@ -318,30 +317,51 @@ void timer_task(void* pvParameter) {
   ESP_LOGI("SPI", "Changed speed to %u", spi_lobo_get_speed(spi));
 
   TFT_setGammaCurve(DEFAULT_GAMMA_CURVE);
-  TFT_setRotation(PORTRAIT);
+  TFT_setRotation(LANDSCAPE);
   TFT_setFont(DEFAULT_FONT, NULL);
   TFT_resetclipwin();
 
   TFT_fillScreen(TFT_BLACK);
-  TFT_print("Hello world!", CENTER, CENTER);
+}
 
-  for (;;) {
-    static struct timeval now;
-    gettimeofday(&now, NULL);
-    static char timer_output[10];
-    if (timer != 0 && now.tv_sec != 0) {
-      time_t time_left = timer - now.tv_sec;
-      if (time_left < 0) {
-        time_left = 0;
-      } else if (time_left > 99 * 60 + 99) {
-        time_left = 99 * 60 + 99;
-      }
-      sprintf(timer_output, "%02ld:%02ld", time_left / 60, time_left % 60);
-    } else {
-      sprintf(timer_output, "No timer");
+void display_timer() {
+  static struct timeval now;
+  static time_t last_time_left = -1;
+  static char timer_output[10];
+  static time_t time_left;
+
+  gettimeofday(&now, NULL);
+  if (timer != 0 && now.tv_sec != 0) {
+    time_left = timer - now.tv_sec;
+    if (time_left < 0) {
+      time_left = 0;
+    } else if (time_left > 99 * 60 + 99) {
+      time_left = 99 * 60 + 99;
     }
+  } else {
+    time_left = -1;
+  }
+
+  if (last_time_left != time_left) {
+    last_time_left = time_left;
+    if (time_left == -1) {
+      sprintf(timer_output, "-");
+    } else {
+      sprintf(timer_output, "%02ld:%02ld", time_left / 60, time_left % 60);
+    }
+
+    _fg = TFT_WHITE;
     TFT_fillScreen(TFT_BLACK);
+    TFT_setFont(FONT_7SEG, NULL);
     TFT_print(timer_output, CENTER, CENTER);
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+}
+
+void timer_task(void* pvParameter) {
+  ESP_LOGI(TAG, "timer_task started");
+  init_display();
+  for (;;) {
+    display_timer();
+    vTaskDelay(50 / portTICK_PERIOD_MS);
   }
 }
