@@ -20,6 +20,7 @@
 #include "freertos/task.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "output.h"
 #include "sdp.h"
 
 #define TAG "main.c"
@@ -289,6 +290,7 @@ int btstack_main(int argc, const char* argv[]) {
   register_send_data_callback(&outgoing_data_is_ready);
 
   xTaskCreate(&timer_task, "timer_task", TIMER_TASK_STACK_SIZE, NULL, 5, NULL);
+  xTaskCreate(&output_task, "output_task", OUTPUT_TASK_STACK_SIZE, NULL, 5, NULL);
 
   // turn Bluetooth on
   gap_discoverable_control(1);

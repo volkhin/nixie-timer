@@ -20,6 +20,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "notificationsSetIndicatorDirective.pb.h"
+#include "output.h"
 #include "pb.h"
 #include "pb_decode.h"
 #include "pb_encode.h"
@@ -350,6 +351,10 @@ void display_timer() {
       sprintf(timer_output, "%02ld:%02ld", time_left / 60, time_left % 60);
     }
 
+    // output to GPIO
+    set_output_value(time_left % 60);
+
+    // show on LCD screen
     _fg = TFT_WHITE;
     TFT_fillScreen(TFT_BLACK);
     TFT_setFont(FONT_7SEG, NULL);
